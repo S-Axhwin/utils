@@ -1,0 +1,69 @@
+### Health Check
+GET http://localhost:3000/health
+
+### Process PO Data
+POST http://localhost:3000/process-po
+Content-Type: application/json
+
+{
+  "data": {
+    "name": [
+      {
+        "PONumber": "CPCTN26-PO-2213002",
+        "SKUId": "146265",
+        "ProductName": "BH-Wow! Corn & Cheese Momos 10 Pcs, 24 gm/pc",
+        "OrderedQty": 210,
+        "City": "Chennai",
+        "VendorName": "ARC FOODS AND BEVERAGES",
+        "POCreatedDate": "2025-09-25"
+      },
+      {
+        "PONumber": "CPCTN26-PO-2213002",
+        "SKUId": "151381",
+        "ProductName": "BH-Wow! Momo Chatpata Paneer Momos, 250 gm",
+        "OrderedQty": 40,
+        "City": "Chennai",
+        "VendorName": "ARC FOODS AND BEVERAGES",
+        "POCreatedDate": "2025-09-25"
+      },
+      {
+        "PONumber": "CPCTN26-PO-2213002",
+        "SKUId": "151383",
+        "ProductName": "BH-Wow! Momo Peri Peri Momos - Buy 1 Get 1 Free, 500 gm",
+        "OrderedQty": 160,
+        "City": "Chennai",
+        "VendorName": "ARC FOODS AND BEVERAGES",
+        "POCreatedDate": "2025-09-25"
+      }
+    ]
+  },
+  "platform": "Blinkit"
+}
+
+### Get PO by Number
+GET http://localhost:3000/po/CPCTN26-PO-2213002
+
+### Get All POs
+GET http://localhost:3000/pos
+
+### Get POs by City
+GET http://localhost:3000/pos?city=Chennai
+
+### Get POs by Status
+GET http://localhost:3000/pos?status=Pending
+
+### Update PO Status
+PATCH http://localhost:3000/po/CPCTN26-PO-2213002/status
+Content-Type: application/json
+
+{
+  "status": "Processing"
+}
+
+### Update Received Quantity
+PATCH http://localhost:3000/po/CPCTN26-PO-2213002/item/146265/received
+Content-Type: application/json
+
+{
+  "receivedQty": 200
+}
