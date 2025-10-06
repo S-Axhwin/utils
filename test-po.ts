@@ -80,7 +80,7 @@ async function testPoService() {
   try {
     // Test processing PO data
     console.log("\n📝 Processing PO data...");
-    const result = await poService.processPOData(testData.data, testData.platform);
+    const result = await poService.processPOData(testData.data as unknown as POInput, testData.platform as string);
     
     console.log("✅ Result:", JSON.stringify(result, null, 2));
     
