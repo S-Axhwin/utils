@@ -1,4 +1,6 @@
+
 import { Hono } from "hono";
+import { serve } from "@hono/node-server";
 import PoService, { type POInput } from "./service/PoService.js";
 
 const app = new Hono();
@@ -163,5 +165,16 @@ app.get("/health", async (c) => {
     });
 });
 
+// Start the server
+const port = Number(process.env.PORT) || 3000;
+
+console.log(`🚀 Starting PO Service on port ${port}...`);
+
+serve({
+    fetch: app.fetch,
+    port: port
+}, (info:any) => {
+    console.log(`✅ PO Service is running at http://localhost:${info.port}`);
+});
 
 export default app;
