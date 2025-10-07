@@ -11,12 +11,14 @@ app.post("/process-po", async (c) => {
     try {
         console.log("im into json process");
         
-        const {data, platform}: {data: POInput, platform: string} = await c.req.json();
-        console.log("Received PO data with platform:", platform);
-        console.log(`Processing ${data.name.length} items across multiple POs...`);
+        const {pos, platform}: {pos: POInput, platform: string} = await c.req.json();
+        console.log("Received PO data", pos, "with platform:", platform);
+        
+        console.log('Received PO data with platform:', platform);
+        console.log(`Processing ${pos.data.length} items across multiple POs...`);
         
         // Process the PO data with platform
-        const result = await poService.processPOData(data, platform);
+        const result = await poService.processPOData(pos, platform);
         
         return c.json({
             success: result.success,

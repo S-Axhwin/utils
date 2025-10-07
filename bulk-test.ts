@@ -1,7 +1,7 @@
 import PoService, { type POInput } from "./service/PoService.js";
 
 // Generate large test data for bulk processing
-function generateBulkTestData(numPOs: number, itemsPerPO: number): { data: POInput, platform: string } {
+function generateBulkTestData(numPOs: number, itemsPerPO: number): { pos: POInput, platform: string } {
   const items = [];
   
   for (let poIndex = 1; poIndex <= numPOs; poIndex++) {
@@ -21,7 +21,7 @@ function generateBulkTestData(numPOs: number, itemsPerPO: number): { data: POInp
   }
   
   return {
-    data: { name: items },
+    pos: { data: items },
     platform: "Bulk Test Platform"
   };
 }
@@ -48,11 +48,11 @@ async function testBulkProcessing() {
     try {
       // Generate test data
       const testData = generateBulkTestData(config.pos, config.itemsPerPO);
-      console.log(`✅ Generated ${testData.data.name.length} test items`);
+      console.log(`✅ Generated ${testData.pos.data.length} test items`);
       
       // Process bulk data
       const startTime = Date.now();
-      const result = await poService.processPOData(testData.data, testData.platform);
+      const result = await poService.processPOData(testData.pos, testData.platform);
       const totalTime = Date.now() - startTime;
       
       // Display results
@@ -124,7 +124,7 @@ async function performanceAnalysis(poService: PoService) {
     const startTime = Date.now();
     
     try {
-      await poService.processPOData(testData.data, `Perf-Test-${size}`);
+      await poService.processPOData(testData.pos, `Perf-Test-${size}`);
       const time = Date.now() - startTime;
       const itemsPerSecond = Math.round((size * 3) / (time / 1000));
       

@@ -2,8 +2,8 @@ import PoService, { type POInput } from "./service/PoService.js";
 
 // Test data based on your example with platform
 const testData = {
-  data: {
-    name: [
+  pos: {
+    data: [
       {
         PONumber: "CPCTN26-PO-2213002",
         SKUId: "146265",
@@ -80,7 +80,7 @@ async function testPoService() {
   try {
     // Test processing PO data
     console.log("\n📝 Processing PO data...");
-    const result = await poService.processPOData(testData.data as unknown as POInput, testData.platform as string);
+    const result = await poService.processPOData(testData.pos, testData.platform);
     
     console.log("✅ Result:", JSON.stringify(result, null, 2));
     

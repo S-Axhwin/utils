@@ -6,10 +6,10 @@ POST http://localhost:3000/process-po
 Content-Type: application/json
 
 {
-  "data": {
-    "name": [
+  "pos": {
+    "data": [
       {
-        "PONumber": "CPCTN26-PO-2213002",
+        "PONumber": "CPCTN26-PO-3jd2212",
         "SKUId": "146265",
         "ProductName": "BH-Wow! Corn & Cheese Momos 10 Pcs, 24 gm/pc",
         "OrderedQty": 210,

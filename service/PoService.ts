@@ -13,7 +13,7 @@ interface POItem {
 }
 
 interface POInput {
-  name: POItem[];
+  data: POItem[];
 }
 
 interface Vendor {
@@ -50,6 +50,7 @@ interface PurchaseOrder {
   city: string;
   po_created_date: string;
   status?: string;
+  isGmail?: boolean;
 }
 
 interface OrderItem {
@@ -94,10 +95,10 @@ class PoService {
       const errors: string[] = [];
       const processedPOs: any[] = [];
       
-      console.log(`🚀 Starting bulk processing of ${input.name.length} items...`);
+      console.log(`🚀 Starting bulk processing of ${input.data.length} items...`);
       
       // Group items by PO Number
-      const poGroups = this.groupByPONumber(input.name);
+      const poGroups = this.groupByPONumber(input.data);
       const totalPOs = Object.keys(poGroups).length;
       
       console.log(`📦 Found ${totalPOs} unique POs to process`);
@@ -145,7 +146,7 @@ class PoService {
       
       const processingTime = Date.now() - startTime;
       const stats = {
-        totalItems: input.name.length,
+        totalItems: input.data.length,
         totalPOs,
         processedPOs: processedPOs.length,
         failedPOs: errors.length,
@@ -161,7 +162,7 @@ class PoService {
       return {
         success: errors.length === 0,
         message: errors.length === 0 
-          ? `Successfully processed all ${totalPOs} POs with ${input.name.length} items` 
+          ? `Successfully processed all ${totalPOs} POs with ${input.data.length} items` 
           : `Processed ${processedPOs.length}/${totalPOs} POs successfully, ${errors.length} failed`,
         data: processedPOs,
         errors: errors.length > 0 ? errors : undefined,
@@ -176,7 +177,7 @@ class PoService {
         message: 'Failed to process PO data',
         errors: [error instanceof Error ? error.message : 'Unknown error'],
         stats: {
-          totalItems: input.name?.length || 0,
+          totalItems: input.data?.length || 0,
           totalPOs: 0,
           processedPOs: 0,
           failedPOs: 1,
@@ -239,7 +240,8 @@ class PoService {
       platform_id: platform.id!,
       city: firstItem.City,
       po_created_date: firstItem.POCreatedDate,
-      status: 'Pending'
+      status: 'Pending',
+      isGmail: true
     });
 
     // 5. Create or update order items
