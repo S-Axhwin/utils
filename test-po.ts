@@ -1,4 +1,4 @@
-import PoService, { type POInput } from "./service/PoService.js";
+import PoService from "./service/PoService";
 
 // Test data based on your example with platform
 const testData = {
