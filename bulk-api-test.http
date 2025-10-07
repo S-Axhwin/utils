@@ -1,0 +1,62 @@
+### Bulk PO Processing Test
+POST http://localhost:3000/process-po
+Content-Type: application/json
+
+{
+  "data": {
+    "name": [
+      {
+        "PONumber": "BULK-API-001",
+        "SKUId": "API-SKU-001",
+        "ProductName": "API Test Product 1",
+        "OrderedQty": 100,
+        "City": "Mumbai",
+        "VendorName": "API Test Vendor 1",
+        "POCreatedDate": "2025-10-06"
+      },
+      {
+        "PONumber": "BULK-API-001",
+        "SKUId": "API-SKU-002",
+        "ProductName": "API Test Product 2",
+        "OrderedQty": 75,
+        "City": "Mumbai",
+        "VendorName": "API Test Vendor 1",
+        "POCreatedDate": "2025-10-06"
+      },
+      {
+        "PONumber": "BULK-API-002",
+        "SKUId": "API-SKU-003",
+        "ProductName": "API Test Product 3",
+        "OrderedQty": 150,
+        "City": "Delhi",
+        "VendorName": "API Test Vendor 2",
+        "POCreatedDate": "2025-10-06"
+      },
+      {
+        "PONumber": "BULK-API-002",
+        "SKUId": "API-SKU-004",
+        "ProductName": "API Test Product 4",
+        "OrderedQty": 200,
+        "City": "Delhi",
+        "VendorName": "API Test Vendor 2",
+        "POCreatedDate": "2025-10-06"
+      },
+      {
+        "PONumber": "BULK-API-003",
+        "SKUId": "API-SKU-005",
+        "ProductName": "API Test Product 5",
+        "OrderedQty": 50,
+        "City": "Bangalore",
+        "VendorName": "API Test Vendor 3",
+        "POCreatedDate": "2025-10-06"
+      }
+    ]
+  },
+  "platform": "API Test Platform"
+}
+
+### Get All POs with Stats
+GET http://localhost:3000/pos
+
+### Get Specific Bulk PO
+GET http://localhost:3000/po/BULK-API-001

@@ -13,7 +13,7 @@ interface POItem {
 }
 
 interface POInput {
-  data: POItem[];
+  name: POItem[];
 }
 
 interface Vendor {
@@ -62,6 +62,8 @@ interface OrderItem {
 
 class PoService {
   private supabase: SupabaseClient;
+  private vendorCache: Map<string, Vendor> = new Map();
+  private skuCache: Map<string, LandingRate> = new Map();
 
   constructor() {
     this.supabase = createClient(
@@ -71,41 +73,115 @@ class PoService {
   }
 
   /**
-   * Main function to process PO data
+   * Main function to process PO data with optimizations for bulk processing
    */
   async processPOData(input: POInput, platformName?: string): Promise<{
     success: boolean;
     message: string;
     data?: any;
     errors?: string[];
+    stats?: {
+      totalItems: number;
+      totalPOs: number;
+      processedPOs: number;
+      failedPOs: number;
+      processingTime: number;
+    };
   }> {
+    const startTime = Date.now();
+    
     try {
       const errors: string[] = [];
       const processedPOs: any[] = [];
-
+      
+      console.log(`🚀 Starting bulk processing of ${input.name.length} items...`);
+      
       // Group items by PO Number
-      const poGroups = this.groupByPONumber(input.data);
-
-      for (const [poNumber, items] of Object.entries(poGroups)) {
-        try {
-          const result = await this.processSinglePO(poNumber, items, platformName);
-          processedPOs.push(result);
-        } catch (error) {
-          errors.push(`Error processing PO ${poNumber}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const poGroups = this.groupByPONumber(input.name);
+      const totalPOs = Object.keys(poGroups).length;
+      
+      console.log(`📦 Found ${totalPOs} unique POs to process`);
+      
+      // Pre-create or fetch platform to avoid repeated lookups
+      const platform = await this.ensurePlatform(platformName || 'Default Platform');
+      console.log(`🏢 Using platform: ${platform.name} (ID: ${platform.id})`);
+      
+      // Process POs in batches to avoid overwhelming the database
+      const BATCH_SIZE = 10; // Process 10 POs at a time
+      const poEntries = Object.entries(poGroups);
+      
+      for (let i = 0; i < poEntries.length; i += BATCH_SIZE) {
+        const batch = poEntries.slice(i, i + BATCH_SIZE);
+        console.log(`📊 Processing batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(poEntries.length/BATCH_SIZE)} (${batch.length} POs)`);
+        
+        // Process batch concurrently but with controlled concurrency
+        const batchPromises = batch.map(async ([poNumber, items]) => {
+          try {
+            const result = await this.processSinglePO(poNumber, items, platform.name);
+            return { success: true, poNumber, result };
+          } catch (error) {
+            const errorMsg = `Error processing PO ${poNumber}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+            console.error(`❌ ${errorMsg}`);
+            return { success: false, poNumber, error: errorMsg };
+          }
+        });
+        
+        const batchResults = await Promise.all(batchPromises);
+        
+        // Separate successful and failed results
+        for (const result of batchResults) {
+          if (result.success) {
+            processedPOs.push(result.result);
+          } else {
+            errors.push(result.error!);
+          }
+        }
+        
+        // Add small delay between batches to prevent overwhelming the database
+        if (i + BATCH_SIZE < poEntries.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
-
+      
+      const processingTime = Date.now() - startTime;
+      const stats = {
+        totalItems: input.name.length,
+        totalPOs,
+        processedPOs: processedPOs.length,
+        failedPOs: errors.length,
+        processingTime
+      };
+      
+      console.log(`✅ Bulk processing completed in ${processingTime}ms`);
+      console.log(`📈 Stats: ${stats.processedPOs}/${stats.totalPOs} POs processed successfully`);
+      
+      // Clear caches after bulk processing
+      this.clearCaches();
+      
       return {
         success: errors.length === 0,
-        message: errors.length === 0 ? 'All POs processed successfully' : 'Some POs had errors',
+        message: errors.length === 0 
+          ? `Successfully processed all ${totalPOs} POs with ${input.name.length} items` 
+          : `Processed ${processedPOs.length}/${totalPOs} POs successfully, ${errors.length} failed`,
         data: processedPOs,
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors.length > 0 ? errors : undefined,
+        stats
       };
     } catch (error) {
+      const processingTime = Date.now() - startTime;
+      console.error('❌ Fatal error in bulk processing:', error);
+      
       return {
         success: false,
         message: 'Failed to process PO data',
-        errors: [error instanceof Error ? error.message : 'Unknown error']
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        stats: {
+          totalItems: input.name?.length || 0,
+          totalPOs: 0,
+          processedPOs: 0,
+          failedPOs: 1,
+          processingTime
+        }
       };
     }
   }
@@ -223,11 +299,18 @@ class PoService {
   }
 
   /**
-   * Ensure vendor exists, create if not
+   * Ensure vendor exists, create if not (with caching for bulk operations)
    */
   async ensureVendor(vendorData: Omit<Vendor, 'id'>): Promise<Vendor> {
+    const cacheKey = `${vendorData.name}-${vendorData.city || 'NO_CITY'}`;
+    
+    // Check cache first
+    if (this.vendorCache.has(cacheKey)) {
+      return this.vendorCache.get(cacheKey)!;
+    }
+    
     try {
-      // Check if vendor exists
+      // Check if vendor exists in database
       const { data: existing, error: selectError } = await this.supabase
         .from('vendors')
         .select('*')
@@ -235,6 +318,7 @@ class PoService {
         .maybeSingle();
 
       if (existing && !selectError) {
+        this.vendorCache.set(cacheKey, existing);
         return existing;
       }
 
@@ -249,6 +333,7 @@ class PoService {
         throw new Error(`Failed to create vendor: ${insertError.message}`);
       }
 
+      this.vendorCache.set(cacheKey, newVendor);
       return newVendor;
     } catch (error) {
       throw new Error(`Vendor operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -256,11 +341,18 @@ class PoService {
   }
 
   /**
-   * Ensure landing rate (SKU) exists, create if not
+   * Ensure landing rate (SKU) exists, create if not (with caching for bulk operations)
    */
   async ensureLandingRate(landingRateData: Omit<LandingRate, 'id'>): Promise<LandingRate> {
+    const cacheKey = `${landingRateData.sku_id}-${landingRateData.platform_id}`;
+    
+    // Check cache first
+    if (this.skuCache.has(cacheKey)) {
+      return this.skuCache.get(cacheKey)!;
+    }
+    
     try {
-      // Check if SKU exists
+      // Check if SKU exists in database
       const { data: existing, error: selectError } = await this.supabase
         .from('landing_rate')
         .select('*')
@@ -268,6 +360,7 @@ class PoService {
         .maybeSingle();
 
       if (existing && !selectError) {
+        this.skuCache.set(cacheKey, existing);
         return existing;
       }
 
@@ -282,6 +375,7 @@ class PoService {
         throw new Error(`Failed to create landing rate: ${insertError.message}`);
       }
 
+      this.skuCache.set(cacheKey, newLandingRate);
       return newLandingRate;
     } catch (error) {
       throw new Error(`Landing rate operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -501,6 +595,15 @@ class PoService {
     } catch (error) {
       throw new Error(`Update received quantity failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Clear caches - useful after bulk operations
+   */
+  private clearCaches(): void {
+    this.vendorCache.clear();
+    this.skuCache.clear();
+    console.log('🧯 Caches cleared after bulk processing');
   }
 }
 
