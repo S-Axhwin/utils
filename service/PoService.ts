@@ -50,7 +50,7 @@ interface PurchaseOrder {
   city: string;
   po_created_date: string;
   status?: string;
-  isGmail?: boolean;
+  isgmail?: boolean;
 }
 
 interface OrderItem {
@@ -241,7 +241,7 @@ class PoService {
       city: firstItem.City,
       po_created_date: firstItem.POCreatedDate,
       status: 'Pending',
-      isGmail: true
+      isgmail: true
     });
 
     // 5. Create or update order items
